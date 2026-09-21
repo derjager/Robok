@@ -1,0 +1,459 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0d1117">
+<title>Wally</title>
+<style>
+  :root { --bg:#0d1117; --card:#161b22; --line:#30363d; --txt:#e6edf3; --dim:#8b949e;
+          --acc:#2ec4e6; --ok:#3fb950; --bad:#f85149; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body { margin:0; background:var(--bg); color:var(--txt); font:16px/1.4 system-ui,sans-serif;
+         padding:max(12px,env(safe-area-inset-top)) 16px 32px; max-width:560px; margin-inline:auto; }
+  header { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+  h1 { font-size:22px; margin:0; flex:1; }
+  .dot { width:12px; height:12px; border-radius:50%; background:var(--bad); }
+  .dot.on { background:var(--ok); }
+  section { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px; margin-bottom:14px; }
+  h2 { font-size:13px; text-transform:uppercase; letter-spacing:.08em; color:var(--dim); margin:0 0 10px; }
+  button, select, input { font:inherit; color:var(--txt); background:#21262d; border:1px solid var(--line);
+                          border-radius:10px; padding:10px 12px; min-height:44px; }
+  button { cursor:pointer; touch-action:manipulation; }
+  button:active { background:#30363d; }
+  button.on { border-color:var(--acc); color:var(--acc); }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(110px,1fr)); gap:8px; }
+  .row { display:flex; gap:8px; }
+  .row > input { flex:1; min-width:0; }
+  .face { display:flex; gap:14px; align-items:flex-start; flex-wrap:wrap; }
+  #face { width:180px; aspect-ratio:3/4; background:#000; border:1px solid var(--line); border-radius:8px; image-rendering:auto; }
+  #pad { flex:1; min-width:150px; aspect-ratio:1; max-width:220px; background:#0b0f14; border:1px dashed var(--line);
+         border-radius:12px; position:relative; touch-action:none; }
+  #pad i { position:absolute; width:22px; height:22px; margin:-11px 0 0 -11px; border-radius:50%; background:var(--acc);
+           left:50%; top:50%; pointer-events:none; }
+  #pad span { position:absolute; inset:auto 0 6px; text-align:center; font-size:12px; color:var(--dim); }
+  .status { font-size:13px; color:var(--dim); }
+  #login { display:none; }
+  #login.show { display:block; }
+  .msg { color:var(--bad); font-size:14px; min-height:20px; }
+  body { padding-bottom:96px; }
+  .drive { display:flex; gap:16px; flex-wrap:wrap; align-items:center; }
+  #joy { width:210px; aspect-ratio:1; border-radius:50%; background:radial-gradient(#0b0f14 60%, #131a22);
+         border:2px solid var(--line); position:relative; touch-action:none; user-select:none; flex:none; }
+  #joy::before, #joy::after { content:""; position:absolute; background:var(--line); }
+  #joy::before { left:50%; top:8%; bottom:8%; width:1px; } #joy::after { top:50%; left:8%; right:8%; height:1px; }
+  #joy i { position:absolute; width:64px; height:64px; margin:-32px 0 0 -32px; border-radius:50%; left:50%; top:50%;
+           background:var(--acc); opacity:.85; pointer-events:none; }
+  .side { flex:1; min-width:150px; }
+  .side label { display:flex; justify-content:space-between; font-size:14px; color:var(--dim); }
+  .side input[type=range] { width:100%; padding:0; min-height:32px; }
+  .bar { position:relative; height:10px; background:#0b0f14; border:1px solid var(--line); border-radius:6px; margin:4px 0 10px; }
+  .bar b { position:absolute; top:0; bottom:0; background:var(--acc); border-radius:5px; }
+  .bar span { position:absolute; left:50%; top:-3px; bottom:-3px; width:1px; background:var(--dim); }
+  .badge { display:inline-block; font-size:12px; padding:2px 8px; border-radius:999px; background:#3d2f00; color:#ffd866; }
+  #bar { position:fixed; left:0; right:0; bottom:0; padding:10px 16px max(10px,env(safe-area-inset-bottom));
+         background:linear-gradient(transparent, var(--bg) 35%); display:flex; gap:10px; max-width:560px; margin-inline:auto; }
+  #estop { flex:1; background:#b62324; border-color:#f85149; color:#fff; font-weight:700; font-size:20px; letter-spacing:.06em; min-height:60px; }
+  #estop:active { background:#e5484d; }
+  #reset { flex:1; background:#1f6f43; border-color:var(--ok); color:#fff; font-weight:700; font-size:18px; min-height:60px; }
+  body.estopped #estop { display:none; }
+  #reset[hidden], #bar[hidden], .badge[hidden], #camcard[hidden], .tof[hidden] { display:none; }
+  #camwrap { position:relative; aspect-ratio:4/3; background:#000; border:1px solid var(--line); border-radius:10px; overflow:hidden; }
+  #cam { width:100%; height:100%; object-fit:contain; display:block; }
+  #camoff { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; text-align:center;
+            padding:16px; color:var(--dim); font-size:14px; pointer-events:none; }
+  #camoff[hidden] { display:none; }
+  .tof { position:absolute; padding:2px 9px; border-radius:999px; font-size:13px; font-weight:700; background:rgba(0,0,0,.62);
+         color:var(--dim); font-variant-numeric:tabular-nums; pointer-events:none; white-space:nowrap; }
+  .tof.ok { color:var(--ok); } .tof.near { color:#ffd866; } .tof.stop { color:#fff; background:rgba(182,35,36,.9); }
+  .tof.err { color:#fff; background:rgba(182,35,36,.9); }
+  #tf-front_left { top:8px; left:8px; } #tf-front { top:8px; left:50%; transform:translateX(-50%); }
+  #tf-front_right { top:8px; right:8px; } #tf-rear { bottom:8px; left:50%; transform:translateX(-50%); }
+  #ov { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+  #vcard[hidden], #teachbox[hidden], #vmsg[hidden] { display:none; }
+  .vhead { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:8px; }
+  .vhead .status { flex:1; min-width:140px; }
+  .ident { border:1px solid var(--line); border-radius:10px; padding:10px; margin-top:10px; background:#0f141a; }
+  .ident h3 { font-size:16px; margin:0; display:flex; gap:8px; align-items:baseline; flex-wrap:wrap; }
+  .ident h3 small { font-size:12px; color:var(--dim); font-weight:400; }
+  .thumbs { display:flex; gap:6px; flex-wrap:wrap; margin:8px 0; min-height:8px; }
+  .thumbs img { width:48px; height:48px; object-fit:cover; border-radius:6px; border:1px solid var(--line); cursor:pointer; }
+  .ident .row { flex-wrap:wrap; align-items:center; }
+  .ident label, .chk { display:flex; align-items:center; gap:6px; font-size:14px; color:var(--dim); min-height:32px; }
+  input[type=checkbox] { width:20px; height:20px; min-height:0; padding:0; }
+  .small { min-height:36px; padding:6px 10px; font-size:14px; }
+  .danger { border-color:#7d2a2a; color:#ff9b93; }
+  #teachbox { border:1px solid var(--acc); border-radius:10px; padding:10px; margin:10px 0; background:#0b1a20; }
+  .prog { height:10px; background:#0b0f14; border:1px solid var(--line); border-radius:6px; overflow:hidden; margin:6px 0; }
+  .prog b { display:block; height:100%; width:0; background:var(--acc); transition:width .3s; }
+  #vmsg { color:#ffd866; font-size:14px; margin:6px 0 0; }
+  .newid { display:grid; grid-template-columns:1fr auto; gap:8px; margin-top:12px; }
+  .newid input[type=text] { min-width:0; }
+</style>
+</head>
+<body>
+<header><h1>Wally</h1><span id="pill" class="status">sin conexión</span><span id="dot" class="dot"></span></header>
+
+<section id="login">
+  <h2>Acceso</h2>
+  <p class="status">Escribe el código que imprimió Wally al arrancar (archivo <code>.robok_token</code>).</p>
+  <div class="row"><input id="tok" inputmode="text" autocapitalize="off" autocomplete="off" placeholder="código">
+  <button id="go">Entrar</button></div>
+  <div id="loginmsg" class="msg"></div>
+</section>
+
+<div id="app" hidden>
+  <section id="camcard" hidden>
+    <h2>Cámara <span id="camstat" class="status"></span></h2>
+    <div id="camwrap">
+      <img id="cam" alt="Vista de la cámara">
+      <canvas id="ov"></canvas>
+      <div id="camoff">Cámara apagada</div>
+      <span class="tof" id="tf-front_left" hidden></span><span class="tof" id="tf-front" hidden></span>
+      <span class="tof" id="tf-front_right" hidden></span><span class="tof" id="tf-rear" hidden></span>
+    </div>
+    <div class="row" style="margin-top:8px"><button id="camtoggle">Apagar cámara</button></div>
+  </section>
+
+  <section id="vcard" hidden>
+    <h2>Visión</h2>
+    <div class="vhead">
+      <button id="vtoggle" class="small">Apagar visión</button>
+      <span id="vstat" class="status">—</span>
+    </div>
+    <div id="vmsg" hidden></div>
+    <div id="teachbox" hidden>
+      <div id="teachtitle"><b></b></div>
+      <div class="prog"><b id="teachbar"></b></div>
+      <div id="teachhint" class="status"></div>
+      <button id="teachcancel" class="small" style="margin-top:6px">Cancelar</button>
+    </div>
+    <div id="idents"></div>
+    <div class="newid">
+      <input id="newname" type="text" maxlength="32" placeholder="Nombre (p. ej. Pila)" autocomplete="off">
+      <select id="newkind"><option value="cat">Gato</option><option value="person">Persona</option></select>
+      <label class="chk" style="grid-column:1/-1"><input id="newfollow" type="checkbox" checked> Seguirlo con la mirada cuando lo vea</label>
+      <button id="newgo" style="grid-column:1/-1">Enseñar</button>
+    </div>
+    <p class="status" style="margin:10px 0 0">Para enseñar: pon solo a esa persona o gato frente a la cámara y pulsa <b>Enseñar</b>; muévete un poco para que la vea de varios ángulos. Con dos gatos a la vez no sabe cuál es cuál, así que espera.</p>
+    <label class="chk" style="margin-top:8px"><input id="mirror" type="checkbox"> Mirada en espejo (los ojos miran hacia donde está, visto desde el frente del robot). Si se ve al revés, cámbialo.</label>
+  </section>
+
+  <section>
+    <h2>Manejo <span id="simbadge" class="badge" hidden>motores simulados</span></h2>
+    <div class="drive">
+      <div id="joy"><i></i></div>
+      <div class="side">
+        <label>Velocidad <output id="spdv">50 %</output></label>
+        <input id="spd" type="range" min="10" max="100" value="50">
+        <label style="margin-top:8px">Oruga izquierda</label><div class="bar"><span></span><b id="bl"></b></div>
+        <label>Oruga derecha</label><div class="bar"><span></span><b id="br"></b></div>
+        <div id="dstat" class="status">—</div>
+      </div>
+    </div>
+    <p class="status" style="margin:10px 0 0">Arrastra el círculo. En PC: WASD o flechas, y la barra espaciadora es el paro.</p>
+  </section>
+
+  <section>
+    <h2>Cara</h2>
+    <div class="face">
+      <img id="face" alt="Lo que muestra el LCD">
+      <div id="pad"><i></i><span>mirar</span></div>
+    </div>
+    <div id="exprs" class="grid" style="margin-top:12px"></div>
+  </section>
+
+  <section>
+    <h2>Voz</h2>
+    <div class="row"><input id="text" maxlength="200" placeholder="Qué dice Wally…"><button id="say">Hablar</button></div>
+    <div class="row" style="margin-top:8px">
+      <select id="mood"></select>
+      <button id="quiet">Callar</button>
+    </div>
+    <div id="sounds" class="grid" style="margin-top:12px"></div>
+  </section>
+
+  <section><h2>Estado</h2><div id="state" class="status">—</div></section>
+</div>
+
+<div id="bar" hidden>
+  <button id="estop">PARO</button>
+  <button id="reset" hidden>Reanudar</button>
+</div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+let token = localStorage.getItem("wally_token") || "";
+let ws = null, wsOk = false, retry = 0, expr = "neutral";
+
+const H = () => ({ "Content-Type": "application/json", "X-Wally-Token": token });
+async function api(path, method = "GET", body) {
+  const r = await fetch(path, { method, headers: H(), body: body ? JSON.stringify(body) : undefined });
+  if (r.status === 401) { showLogin("Código incorrecto"); throw new Error("401"); }
+  return r.json();
+}
+
+function showLogin(msg = "") {
+  localStorage.removeItem("wally_token"); token = "";
+  $("#app").hidden = true; $("#bar").hidden = true; $("#login").classList.add("show"); $("#loginmsg").textContent = msg;
+  if (ws) ws.close();
+}
+
+const REST = { face: "/api/face", say: "/api/say", stop: "/api/stop", estop: "/api/estop", estop_reset: "/api/estop/reset" };
+function send(obj) {
+  if (wsOk) { ws.send(JSON.stringify(obj)); return; }
+  // sin WebSocket solo se permiten por REST las acciones que no necesitan latencia (y los paros)
+  if (REST[obj.type]) api(REST[obj.type], "POST", ["face", "say"].includes(obj.type) ? obj : undefined).catch(() => {});
+}
+
+function connect() {
+  const proto = location.protocol === "https:" ? "wss" : "ws";
+  ws = new WebSocket(`${proto}://${location.host}/ws?token=${encodeURIComponent(token)}`);
+  ws.onopen = () => { wsOk = true; retry = 0; $("#dot").classList.add("on"); $("#pill").textContent = "conectado"; };
+  ws.onclose = (e) => {
+    wsOk = false; $("#dot").classList.remove("on"); $("#pill").textContent = "sin conexión";
+    if (e.code === 4401) return showLogin("Código incorrecto");
+    if (token) setTimeout(connect, Math.min(5000, 500 * 2 ** retry++));
+  };
+  ws.onmessage = (e) => {
+    const m = JSON.parse(e.data);
+    if (m.type === "vision") return onVision(m);
+    if (m.type !== "state") return;
+    expr = m.face.expression; markExpr(); showDrive(m); showCamera(m); showTof(m); showVision(m);
+    $("#state").innerHTML = `Pantalla: ${m.display}<br>Voz: ${m.voice}<br>ToF: ${m.tof ? m.tof.desc : "sin sensores"}<br>` +
+      `Cámara: ${m.camera ? m.camera.desc : "desactivada"}<br>Visión: ${m.vision ? (m.vision.available ? m.vision.desc : m.vision.reason) : "desactivada"}<br>CPU: ${m.cpu_temp_c ?? "?"} °C · ` +
+      `activo ${Math.round(m.uptime_s)} s${m.sim ? " · <b>simulado</b>" : ""}`;
+  };
+}
+
+function markExpr() { document.querySelectorAll("#exprs button").forEach(b => b.classList.toggle("on", b.dataset.e === expr)); }
+
+async function start() {
+  $("#login").classList.remove("show");
+  const meta = await api("/api/expressions");
+  $("#exprs").replaceChildren(...meta.expressions.map(n => {
+    const b = document.createElement("button"); b.textContent = n; b.dataset.e = n;
+    b.onclick = () => send({ type: "face", expression: n }); return b; }));
+  $("#mood").replaceChildren(...meta.moods.map(n => new Option(n, n)));
+  $("#sounds").replaceChildren(...meta.sounds.map(n => {
+    const b = document.createElement("button"); b.textContent = "♪ " + n;
+    b.onclick = () => send({ type: "sound", name: n }); return b; }));
+  $("#app").hidden = false; $("#bar").hidden = false;
+  connect();
+  setInterval(() => { if (!document.hidden && token) $("#face").src = `/api/face.png?token=${encodeURIComponent(token)}&t=${Date.now()}`; }, 400);
+}
+
+$("#go").onclick = async () => {
+  token = $("#tok").value.trim(); if (!token) return;
+  try { await api("/api/state"); localStorage.setItem("wally_token", token); start(); } catch (e) {}
+};
+$("#tok").onkeydown = (e) => { if (e.key === "Enter") $("#go").click(); };
+$("#say").onclick = () => { const t = $("#text").value.trim(); if (t) send({ type: "say", text: t, mood: $("#mood").value }); };
+$("#text").onkeydown = (e) => { if (e.key === "Enter") $("#say").click(); };
+$("#quiet").onclick = () => send({ type: "stop_voice" });
+
+// pad de mirada: arrastrar mueve los ojos, soltar los centra
+const pad = $("#pad"), dot = pad.querySelector("i"); let last = 0;
+function look(e) {
+  const r = pad.getBoundingClientRect();
+  const x = Math.max(-1, Math.min(1, ((e.clientX - r.left) / r.width - .5) * 2));
+  const y = Math.max(-1, Math.min(1, ((e.clientY - r.top) / r.height - .5) * 2));
+  dot.style.left = (50 + x * 50) + "%"; dot.style.top = (50 + y * 50) + "%";
+  const now = performance.now(); if (now - last > 60) { last = now; send({ type: "look", x, y }); }
+}
+pad.onpointerdown = (e) => { pad.setPointerCapture(e.pointerId); look(e); };
+pad.onpointermove = (e) => { if (pad.hasPointerCapture(e.pointerId)) look(e); };
+pad.onpointerup = () => { dot.style.left = dot.style.top = "50%"; send({ type: "look", x: 0, y: 0 }); };
+
+// ---- manejo: joystick, teclado, paro ----------------------------------------------------------
+const joy = $("#joy"), knob = joy.querySelector("i");
+let jx = 0, jy = 0, jActive = false, hb = null; const keys = new Set();
+const scale = () => $("#spd").value / 100;
+$("#spd").oninput = () => { $("#spdv").textContent = $("#spd").value + " %"; };
+
+function drivePos() {   // el teclado manda sobre el joystick si hay teclas apretadas
+  if (keys.size) {
+    const k = (a, b) => (keys.has(a) || keys.has(b) ? 1 : 0);
+    return [k("d", "arrowright") - k("a", "arrowleft"), k("w", "arrowup") - k("s", "arrowdown")];
+  }
+  return [jx, jy];
+}
+function sendDrive() { const [x, y] = drivePos(); send({ type: "drive", x, y, scale: scale() }); }
+function startHb() { if (!hb) { sendDrive(); hb = setInterval(sendDrive, 50); } }   // latido: el watchdog del robot es de 0,5 s
+function haltDrive() {
+  clearInterval(hb); hb = null; jActive = false; jx = jy = 0; keys.clear();
+  knob.style.left = knob.style.top = "50%"; send({ type: "stop" });
+}
+function joyMove(e) {
+  const r = joy.getBoundingClientRect();
+  let x = ((e.clientX - r.left) / r.width - .5) * 2, y = -((e.clientY - r.top) / r.height - .5) * 2;
+  const m = Math.hypot(x, y); if (m > 1) { x /= m; y /= m; }
+  jx = x; jy = y; knob.style.left = (50 + x * 50) + "%"; knob.style.top = (50 - y * 50) + "%";
+}
+joy.onpointerdown = (e) => { joy.setPointerCapture(e.pointerId); jActive = true; joyMove(e); startHb(); };
+joy.onpointermove = (e) => { if (jActive) joyMove(e); };
+joy.onpointerup = joy.onpointercancel = haltDrive;
+const typing = (e) => ["INPUT", "SELECT", "TEXTAREA"].includes(e.target.tagName);
+document.onkeydown = (e) => {
+  if (typing(e) || e.repeat) return;
+  const k = e.key.toLowerCase();
+  if (k === " ") { e.preventDefault(); send({ type: "estop" }); return; }
+  if (["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright"].includes(k)) { e.preventDefault(); keys.add(k); startHb(); }
+};
+document.onkeyup = (e) => { keys.delete(e.key.toLowerCase()); if (!keys.size && !jActive) haltDrive(); };
+document.addEventListener("visibilitychange", () => { if (document.hidden) haltDrive(); });
+window.addEventListener("blur", haltDrive);
+$("#estop").onpointerdown = () => { haltDrive(); send({ type: "estop" }); };
+$("#reset").onclick = () => send({ type: "estop_reset" });
+
+function bar(el, v, cap) {   // v en potencia aplicada; se muestra como fracción del tope max_duty
+  const f = Math.max(-1, Math.min(1, cap ? v / cap : 0));
+  el.style.left = (f >= 0 ? 50 : 50 + f * 50) + "%"; el.style.width = Math.abs(f) * 50 + "%";
+}
+function showDrive(m) {
+  const d = m.drive; if (!d) return;
+  bar($("#bl"), d.left, d.max_duty); bar($("#br"), d.right, d.max_duty);
+  document.body.classList.toggle("estopped", d.estop); $("#reset").hidden = !d.estop;
+  $("#simbadge").hidden = !String(m.motors).startsWith("simulados");
+  const flags = [];
+  if (d.estop) flags.push("<b style='color:var(--bad)'>PARO ACTIVO</b>");
+  if (d.stale) flags.push("sin órdenes (watchdog)");
+  if (d.limited && d.limited !== "estop") flags.push("limitado: " + d.limited.replaceAll("_", " "));
+  if (d.obstacles_stale) flags.push("<b style='color:var(--bad)'>sensores sin datos: avance bloqueado</b>");
+  $("#dstat").innerHTML = (flags.join(" · ") || "listo") + `<br>Motores: ${m.motors}`;
+}
+
+// ---- cámara y distancias ------------------------------------------------------------------------
+let camOn = localStorage.getItem("wally_cam") !== "0", camHas = false, camSrc = false, camReloaded = 0;
+const camWant = () => camHas && camOn && !document.hidden && !!token;
+function camUpdate() {
+  const img = $("#cam"), want = camWant();
+  if (want && !camSrc) { img.src = `/api/camera.mjpg?token=${encodeURIComponent(token)}&t=${Date.now()}`; camSrc = true; }
+  else if (!want && camSrc) { img.removeAttribute("src"); camSrc = false; }
+  $("#camtoggle").textContent = camOn ? "Apagar cámara" : "Encender cámara";
+}
+function camReload() { $("#cam").removeAttribute("src"); camSrc = false; camUpdate(); }
+$("#cam").onerror = () => { if (camWant() && Date.now() - camReloaded > 3000) { camReloaded = Date.now(); setTimeout(camReload, 1500); } };
+$("#camtoggle").onclick = () => { camOn = !camOn; try { localStorage.setItem("wally_cam", camOn ? "1" : "0"); } catch (e) {} camUpdate(); };
+document.addEventListener("visibilitychange", camUpdate);
+function showCamera(m) {
+  const c = m.camera; camHas = !!c; $("#camcard").hidden = !c;
+  if (!c) return;
+  camUpdate();
+  const off = $("#camoff");
+  off.hidden = camOn && c.streaming;
+  off.textContent = !camOn ? "Cámara apagada" : c.error ? "Sin imagen: " + c.error : "Conectando con la cámara…";
+  $("#camstat").textContent = c.streaming ? `${c.fps} fps` : "";
+  // el servidor no ve ningún espectador aunque la queremos: el flujo se cortó, se reabre
+  if (camWant() && c.viewers === 0 && Date.now() - camReloaded > 3000) { camReloaded = Date.now(); camReload(); }
+}
+const TOF_LABEL = { front_left: "↖", front: "↑", front_right: "↗", rear: "↓" };
+function showTof(m) {
+  const t = m.tof;
+  for (const [name, arrow] of Object.entries(TOF_LABEL)) {
+    const el = $("#tf-" + name), r = t && t.sensors[name];
+    el.hidden = !r; if (!r) continue;
+    const stop = name === "rear" ? t.rear_stop_cm : t.stop_cm;
+    let cls = "tof", txt;
+    if (r.state === "ok") { txt = `${arrow} ${r.cm.toFixed(0)} cm`; cls += r.cm <= stop ? " stop" : r.cm < t.slow_cm ? " near" : " ok"; }
+    else if (r.state === "libre") { txt = `${arrow} libre`; }
+    else if (r.state === "iniciando") { txt = `${arrow} …`; }
+    else { txt = `${arrow} falla`; cls += " err"; }
+    el.className = cls; el.textContent = txt;
+  }
+}
+
+// ---- visión: recuadros, identidades y enseñanza -------------------------------------------------------
+const KCOL = { person: "#58a6ff", cat: "#ffd866", dog: "#bc8cff" };
+let lastV = null, lastVAt = 0, vis = null, teachSeen = "", idsLoaded = false, idsSig = "";
+const el = (tag, props = {}, ...kids) => { const e = Object.assign(document.createElement(tag), props); e.append(...kids); return e; };
+async function apiv(path, method = "GET", body) {   // como api(), pero devuelve también los errores con su motivo
+  const r = await fetch(path, { method, headers: H(), body: body ? JSON.stringify(body) : undefined });
+  if (r.status === 401) { showLogin("Código incorrecto"); throw new Error("401"); }
+  let data = null; try { data = await r.json(); } catch (e) {}
+  return { ok: r.ok, status: r.status, data };
+}
+function vmsg(text) { const b = $("#vmsg"); b.hidden = !text; b.textContent = text || ""; }
+function drawOverlay() {
+  const cv = $("#ov"), wrap = $("#camwrap"), dpr = window.devicePixelRatio || 1;
+  const cw = wrap.clientWidth, ch = wrap.clientHeight;
+  if (cv.width !== Math.round(cw * dpr) || cv.height !== Math.round(ch * dpr)) { cv.width = Math.round(cw * dpr); cv.height = Math.round(ch * dpr); }
+  const g = cv.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, cw, ch);
+  if (!lastV || !camOn || performance.now() - lastVAt > 1500) return;
+  const sc = Math.min(cw / lastV.w, ch / lastV.h), ox = (cw - lastV.w * sc) / 2, oy = (ch - lastV.h * sc) / 2;
+  g.font = "600 12px system-ui,sans-serif"; g.textBaseline = "top";
+  for (const t of lastV.tracks) {
+    const [x0, y0, x1, y1] = t.box, X = ox + x0 * lastV.w * sc, Y = oy + y0 * lastV.h * sc, W = (x1 - x0) * lastV.w * sc, Hh = (y1 - y0) * lastV.h * sc;
+    const known = !!t.identity, col = KCOL[t.kind] || "#fff";
+    g.lineWidth = known ? 3 : 1.5; g.strokeStyle = col; g.strokeRect(X, Y, W, Hh);
+    let label = known ? `${t.identity.follow ? "◉ " : ""}${t.identity.name} ${t.identity.score.toFixed(2)}` : t.kind_es;
+    if (!known && t.candidate) label += ` (¿${t.candidate.name}? ${t.candidate.score.toFixed(2)})`;
+    const tw = g.measureText(label).width + 8, ly = Y >= 18 ? Y - 18 : Y;
+    g.fillStyle = "rgba(0,0,0,.72)"; g.fillRect(X, ly, tw, 18); g.fillStyle = col; g.fillText(label, X + 4, ly + 3);
+  }
+}
+window.addEventListener("resize", drawOverlay);
+setInterval(() => { if (lastV && performance.now() - lastVAt > 1500) { lastV = null; drawOverlay(); } }, 500);
+function onVision(m) { lastV = m; lastVAt = performance.now(); drawOverlay(); }
+
+function showVision(m) {
+  vis = m.vision; $("#vcard").hidden = !vis;
+  if (!vis) return;
+  const btn = $("#vtoggle");
+  btn.textContent = vis.enabled ? "Apagar visión" : "Encender visión"; btn.disabled = !vis.available;
+  $("#mirror").checked = !!vis.gaze_mirror;
+  $("#vstat").textContent = !vis.available ? vis.reason
+    : !vis.enabled ? "apagada"
+    : vis.error ? "error: " + vis.error
+    : `${vis.fps} análisis/s · ${vis.detect_ms} ms` + (vis.following ? ` · mirando a ${vis.following}` : "");
+  const t = vis.teach, box = $("#teachbox");
+  box.hidden = !t;
+  if (t) {
+    box.querySelector("#teachtitle b").textContent = t.state === "active" ? `Enseñando a ${t.name}: ${t.collected}/${t.target}` : `${t.name}: ${t.hint}`;
+    $("#teachbar").style.width = Math.round(100 * t.collected / t.target) + "%";
+    $("#teachhint").textContent = t.state === "active" ? t.hint : "";
+    $("#teachcancel").hidden = t.state !== "active";
+  }
+  const sig = t ? `${t.identity_id}:${t.collected}:${t.state}` : "";
+  if (sig !== teachSeen) { teachSeen = sig; loadIdents(); }      // hay muestras nuevas: refresca la lista
+  if (!idsLoaded) loadIdents();
+}
+async function loadIdents() {
+  idsLoaded = true;
+  const r = await apiv("/api/identities"); if (!r.ok) return;
+  const list = r.data.identities, sig = JSON.stringify(list);
+  if (sig === idsSig) return; idsSig = sig;
+  $("#idents").replaceChildren(...list.map(i => {
+    const thumbs = el("div", { className: "thumbs" }, ...i.samples.slice(-8).map(sid => {
+      const im = el("img", { src: `/api/identities/${i.id}/samples/${sid}.jpg?token=${encodeURIComponent(token)}`, title: "Toca para borrar esta muestra", loading: "lazy" });
+      im.onclick = async () => { if (confirm("¿Borrar esta muestra?")) { await apiv(`/api/identities/${i.id}/samples/${sid}`, "DELETE"); loadIdents(); } };
+      return im; }));
+    const follow = el("input", { type: "checkbox", checked: i.follow });
+    follow.onchange = async () => { await apiv(`/api/identities/${i.id}`, "PATCH", { follow: follow.checked }); loadIdents(); };
+    const more = el("button", { className: "small", textContent: "Enseñar más" });
+    more.onclick = async () => { const r = await apiv(`/api/identities/${i.id}/teach`, "POST", {}); vmsg(r.ok ? "" : r.data.detail); };
+    const ren = el("button", { className: "small", textContent: "Renombrar" });
+    ren.onclick = async () => { const n = prompt("Nuevo nombre", i.name); if (n && n.trim()) { const r = await apiv(`/api/identities/${i.id}`, "PATCH", { name: n.trim() }); vmsg(r.ok ? "" : r.data.detail); loadIdents(); } };
+    const del = el("button", { className: "small danger", textContent: "Borrar" });
+    del.onclick = async () => { if (confirm(`¿Borrar a ${i.name} y todas sus muestras?`)) { await apiv(`/api/identities/${i.id}`, "DELETE"); loadIdents(); } };
+    return el("div", { className: "ident" },
+      el("h3", {}, i.name, el("small", {}, `${i.kind_es} · ${i.samples.length} muestras`)),
+      thumbs,
+      el("div", { className: "row" }, el("label", {}, follow, "seguir con la mirada"), more, ren, del)); }));
+  if (!list.length) $("#idents").replaceChildren(el("p", { className: "status", textContent: "Todavía no conozco a nadie. Enséñame abajo." }));
+}
+$("#vtoggle").onclick = async () => { const r = await apiv("/api/vision/settings", "POST", { enabled: !(vis && vis.enabled) }); vmsg(r.ok ? "" : r.data.detail); };
+$("#mirror").onchange = async () => { await apiv("/api/vision/settings", "POST", { gaze_mirror: $("#mirror").checked }); };
+$("#teachcancel").onclick = () => apiv("/api/vision/teach/cancel", "POST");
+$("#newgo").onclick = async () => {
+  const name = $("#newname").value.trim(); if (!name) { vmsg("Escribe un nombre."); return; }
+  const r = await apiv("/api/identities", "POST", { name, kind: $("#newkind").value, follow: $("#newfollow").checked, teach: true });
+  if (!r.ok) { vmsg(r.data.detail || "No se pudo crear."); return; }
+  vmsg(r.data.teach_error ? "Creado, pero no se pudo empezar: " + r.data.teach_error : ""); $("#newname").value = ""; loadIdents();
+};
+$("#newname").onkeydown = (e) => { if (e.key === "Enter") $("#newgo").click(); };
+
+if (token) api("/api/state").then(start).catch(() => {}); else showLogin();
+</script>
+</body>
+</html>

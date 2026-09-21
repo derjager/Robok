@@ -1,0 +1,20 @@
+# entorno y cachés
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+
+# secretos y configuración local
+.robok_token
+config.local.toml
+
+# driver del fabricante del LCD (tiene su propio repo) y su respaldo del sistema
+LCD-show/
+
+# herramientas del editor
+.continue/
+
+# visión: modelos descargados e identidades enseñadas (datos personales: fotos y huellas de caras)
+/models/
+/data/

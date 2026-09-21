@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "robok"
+version = "0.1.0"
+description = "Wally: robot tanque con cara, ojos y brazos (Raspberry Pi 4)"
+requires-python = ">=3.11"
+dependencies = [
+    "pillow>=10",
+    "numpy>=1.26",
+    "fastapi>=0.110",
+    "uvicorn>=0.27",
+    "websockets>=12",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "httpx>=0.27"]
+# detección de personas/gatos y reconocimiento de caras (el robot real las necesita; las pruebas no)
+vision = ["opencv-python-headless>=4.10,<5", "ai-edge-litert"]
+
+[project.scripts]
+robok = "robok.main:main"
+
+[tool.setuptools.packages.find]
+include = ["robok*"]
+
+[tool.setuptools.package-data]
+robok = ["web/static/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

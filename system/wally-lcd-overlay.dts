@@ -1,0 +1,75 @@
+/*
+ * Overlay del LCD 3.2" (ILI9341) solo-display, sin el touch (ADS7846/XPT2046).
+ *
+ * Es el overlay tft9341 de LCD-show sin el nodo del touch, para que el driver
+ * no reclame GPIO17 (IRQ) y el LCD pueda ir por cables sin el touch conectado.
+ * Pines usados: SPI0 CE0 (GPIO8), MOSI (10), SCLK (11) + DC = GPIO22, RST = GPIO27.
+ *
+ * Compilar:  dtc -@ -I dts -O dtb -o wally-lcd.dtbo wally-lcd-overlay.dts
+ * Usar con:  dtoverlay=spi0-1cs,no_miso   (libera CE1 = GPIO7 y MISO = GPIO9)
+ *            dtoverlay=wally-lcd,rotate=0       (0 = vertical 240x320, verificado en el montaje actual)
+ */
+/dts-v1/;
+/plugin/;
+
+/ {
+	compatible = "brcm,bcm2835";
+
+	fragment@0 {
+		target = <&spidev0>;
+		__overlay__ {
+			status = "disabled";
+		};
+	};
+
+	fragment@1 {
+		target = <&spidev1>;
+		__overlay__ {
+			status = "disabled";
+		};
+	};
+
+	fragment@2 {
+		target = <&gpio>;
+		__overlay__ {
+			wally_lcd_pins: wally_lcd_pins {
+				brcm,pins = <22 27>;
+				brcm,function = <0 0>;
+			};
+		};
+	};
+
+	fragment@3 {
+		target = <&spi0>;
+		__overlay__ {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			status = "okay";
+
+			wally_lcd: wally-lcd@0 {
+				compatible = "ilitek,ili9340";
+				reg = <0>;
+				pinctrl-names = "default";
+				pinctrl-0 = <&wally_lcd_pins>;
+
+				spi-max-frequency = <16000000>;
+				txbuflen = <32768>;
+				rotate = <0>;
+				fps = <25>;
+				bgr;
+				buswidth = <8>;
+				reset-gpios = <&gpio 27 1>;
+				dc-gpios = <&gpio 22 0>;
+				debug = <0>;
+			};
+		};
+	};
+
+	__overrides__ {
+		speed    = <&wally_lcd>, "spi-max-frequency:0";
+		txbuflen = <&wally_lcd>, "txbuflen:0";
+		rotate   = <&wally_lcd>, "rotate:0";
+		fps      = <&wally_lcd>, "fps:0";
+		debug    = <&wally_lcd>, "debug:0";
+	};
+};

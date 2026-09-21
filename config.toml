@@ -1,0 +1,74 @@
+# Configuración de Wally. Todo es opcional: lo que falte usa el valor por defecto de robok/config.py.
+# Para cambios solo de esta máquina, usa otro archivo y ROBOK_CONFIG=ruta.
+
+sim = false            # true (o ROBOK_SIM=1): sin hardware; la cara se guarda en memoria, la voz no suena
+
+[display]
+fps = 20
+
+[voice]
+voice = "es-419"       # voces: espeak-ng --voices=es
+speed = 150
+pitch = 50
+
+[web]
+host = "0.0.0.0"
+port = 8000
+# token = ""           # si se deja vacío se usa ROBOK_TOKEN o el archivo .robok_token (se genera solo)
+
+# Motores: SEGUROS POR DEFECTO (simulados). Se activan solo con enabled = true, después de cablear el
+# TB6612 y de correr scripts/motor_test.py, que imprime swap_sides / invert_left / invert_right.
+[motors]
+enabled = false
+max_duty = 0.4         # tope de potencia. 0.4 protege los FA-130 (3 V) si VM es la batería (7.4 V); con buck de 3 V, hasta 1.0
+ramp_per_s = 2.5       # aceleración máxima (fracción de la escala por segundo)
+watchdog_s = 0.5       # sin órdenes durante este tiempo, se paran los motores
+# invert_left = false
+# invert_right = false
+# swap_sides = false
+
+# Distancias de los sensores ToF.
+[safety]
+front_stop_cm = 20     # más cerca que esto: se bloquea el avance
+front_slow_cm = 35     # entre 20 y 35 la velocidad baja linealmente
+rear_stop_cm = 20      # ToF trasero: se bloquea la reversa
+sensor_timeout_s = 0.5 # sin datos de los sensores durante este tiempo: se bloquean avance y reversa
+
+# Sensores ToF VL53L0X. Desactivados por defecto: con el bus vacío bloquearían el avance (fail-safe).
+# Actívalos tras cablearlos y correr scripts/tof_test.py. Lista solo los que instalaste: cada uno listado es
+# obligatorio y, si falla, bloquea su dirección. Nombres: front, front_left, front_right, rear.
+[tof]
+enabled = false
+# sensors = ["front", "front_left", "front_right", "rear"]
+# max_cm = 120         # más lejos (o sin eco) cuenta como libre
+
+# Cámara: se enciende sola cuando alguien abre la página y se apaga idle_s después de que se va.
+[camera]
+enabled = true
+# width = 640
+# height = 480
+# fps = 15
+# quality = 70
+# hflip = false        # si la imagen sale espejada o al revés
+# vflip = false
+# idle_s = 5
+
+# Visión: detecta personas, gatos y perros; reconoce a quién le enseñaste; y los ojos siguen a quien marques.
+# Necesita los modelos: .venv/bin/python scripts/get_models.py (si faltan, la visión queda apagada y lo dice).
+# Se enciende y apaga también desde la web (tarjeta Visión) y esa elección se recuerda.
+[vision]
+enabled = true
+# fps = 4                # análisis por segundo: menos = menos CPU y calor (con 4 usa ~1 núcleo de 4)
+# threads = 2
+# kinds = ["person", "cat", "dog"]
+# detect_score = 0.5     # confianza mínima del detector
+# cat_threshold = 0.65   # similitud mínima para decir "este es Pila"; sube si confunde gatos, baja si no lo reconoce
+# person_threshold = 0.40
+# margin = 0.05          # ventaja mínima sobre la segunda identidad del mismo tipo
+# gaze_mirror = true     # ojos "hacia" el gato como los vería quien mira la pantalla de frente; false = misma dirección que en el cuadro
+# follow_gain = 1.3
+# lost_s = 1.5           # sin ver al gato este tiempo, los ojos vuelven al centro
+
+# Pines BCM (ver PINOUT.md). Descomenta solo si cambias el cableado.
+# [pins]
+# motor_pwma = 16

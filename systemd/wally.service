@@ -1,0 +1,24 @@
+# Arranque automático de Wally. Todavía NO instalado (necesita sudo). Para instalarlo:
+#   sudo cp systemd/wally.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now wally
+#   journalctl -u wally -f          # logs; ahí aparece el código de acceso la primera vez
+[Unit]
+Description=Wally, robot tanque
+After=network-online.target sound.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=wally
+Group=wally
+# acceso a /dev/fb1 (video), audio, GPIO, I2C y SPI
+SupplementaryGroups=video audio gpio i2c spi
+WorkingDirectory=/home/wally/Robok
+ExecStart=/home/wally/Robok/.venv/bin/python -m robok
+Restart=on-failure
+RestartSec=3
+# systemd manda SIGTERM: robok apaga la cara y la voz limpiamente
+TimeoutStopSec=10
+
+[Install]
+WantedBy=multi-user.target
