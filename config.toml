@@ -19,13 +19,13 @@ port = 8000
 # Motores: SEGUROS POR DEFECTO (simulados). Se activan solo con enabled = true, después de cablear el
 # TB6612 y de correr scripts/motor_test.py, que imprime swap_sides / invert_left / invert_right.
 [motors]
-enabled = false
+enabled = true
 max_duty = 0.4         # tope de potencia. 0.4 protege los FA-130 (3 V) si VM es la batería (7.4 V); con buck de 3 V, hasta 1.0
 ramp_per_s = 2.5       # aceleración máxima (fracción de la escala por segundo)
 watchdog_s = 0.5       # sin órdenes durante este tiempo, se paran los motores
-# invert_left = false
-# invert_right = false
-# swap_sides = false
+invert_left = false
+invert_right = false
+swap_sides = false
 
 # Distancias de los sensores ToF.
 [safety]
